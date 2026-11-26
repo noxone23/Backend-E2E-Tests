@@ -89,3 +89,15 @@ Zum Nachdenken: Wovor schützt die Trennung, und warum ist sie nur eine Hürde u
 
 - Sie schützt vor Versehen. Ein Test, der nach einem Fehler ein Buch zurücklässt, oder ein Test, der später doch Daten löscht, trifft nicht mehr die echten Bücher in `reading-list`. Die Testdaten und die echten Daten vermischen sich nicht, und die Seed-Bücher bleiben unangetastet.
 - Sie ist keine Grenze, weil derselbe Atlas-User alle Datenbanken des Clusters lesen und schreiben darf. Wer die Konstante ändert oder `MONGODB_URI` in `webServer.env` anders setzt, kommt trotzdem an `reading-list`. Der Guard bremst nur ein Versehen, nicht jemanden mit Absicht. Eine echte Grenze wäre ein eigener Atlas-User, der nur auf `reading-list-e2e` Rechte hat, oder ein eigener Cluster.
+
+## Review der Tests
+
+Geprüft:
+
+- **Eigene Daten und Aufräumen:** Test 2 und 3 legen ein Buch mit eindeutigem Titel (`E2E Book ${Date.now()}`) an und löschen es über die Seite. Test 1 legt gar keine Daten an. Keiner zählt Bücher und keiner hat DB-Code. Offen bleibt: Bricht ein Test in der Mitte ab, bleibt sein Buch in `reading-list-e2e` liegen (siehe oben).
+- **Einzeln lauffähig:** Alle drei Tests bestehen allein mit `-g` (`heading and the form`, `add a book`, `after a reload`).
+- **`waitForTimeout`:** Keiner. Auch keine CSS-Selektoren, kein `setTimeout` und kein `reuseExistingServer: true` (Suche mit `grep` in `e2e/` und `playwright.config.ts`).
+
+Gefunden und behoben: Test 2 und 3 wiederholten dieselben sieben Zeilen (Seite öffnen, Titel und Autor ausfüllen, "Add book" klicken, Buch erwarten). Jetzt macht das die Hilfsfunktion `addBook(page)` in `e2e/books.spec.ts`. Sie gibt den Titel und das Listenelement zurück. Ändert sich das Formular, muss man es nur an einer Stelle anpassen.
+
+Danach: `npm run e2e` zweimal grün (3 Tests), beide Flow-Tests einzeln grün, `npm run typecheck` ohne Fehler.
