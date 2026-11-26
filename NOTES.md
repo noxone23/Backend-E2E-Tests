@@ -37,3 +37,33 @@ Der Test `a book is still there after a reload` legt ein Buch an, ruft `page.rel
 Was er beweist, was der Flow-Test nicht beweist: Nach dem Reload ist der Zustand der Seite weg, die Liste wird neu von der API geladen. Das Buch steht also in der Datenbank. Der Flow-Test sieht das Buch auch dann, wenn die Seite es nur im Speicher hält.
 
 Geprüft: `npm run e2e` zweimal hintereinander grün (3 Tests), einzeln mit `npx playwright test -g "after a reload"` grün, `npm run typecheck` ohne Fehler.
+
+## Challenge 3: Locators und Trace Viewer
+
+Fehler eingebaut: In Test 1 heißt die Überschrift `Reading Lst` statt `Reading List`. Danach `git restore e2e/books.spec.ts`.
+
+Ergebnis: Rot, Zeile 7 (`toBeVisible()` der Überschrift). Test 1 wartet das volle Timeout von 5 s ab, bevor er fehlschlägt.
+
+Der Call-Log sagt, was passiert ist:
+
+- `Expect "toBeVisible" getByRole('heading', { name: 'Reading Lst' }) with timeout 5000ms`
+- `waiting for getByRole('heading', { name: 'Reading Lst' })`
+- `Error: element(s) not found`
+
+Der Locator hat nie ein Element gefunden. Er ist also nicht "unsichtbar", er passt auf nichts.
+
+Die Datei `error-context.md` im Ordner `test-results/` zeigt den Aufbau der Seite zum Zeitpunkt des Fehlers: `heading "Reading List" [level=1]`. Daran sieht man den Tippfehler sofort: die Seite hat `Reading List`, der Test sucht `Reading Lst`.
+
+Trace: Die Konfiguration schreibt mit `trace: "retain-on-failure"` für jeden fehlgeschlagenen Test eine `trace.zip` nach `test-results/<ordner>/`. Öffnen mit `npx playwright show-trace test-results/<ordner>/trace.zip`. Der Ordner `test-results/` ist von git ignoriert.
+
+### `getByRole` gegen einen CSS-Selektor
+
+| | `getByRole("button", { name: "Add book" })` | `form button` |
+| --- | --- | --- |
+| Was er beschreibt | Was der Nutzer sieht: ein Button mit dem Namen "Add book" | Wo der Button im HTML steht |
+| Zweiter Button im Formular | Findet weiter genau den richtigen | Trifft zwei Elemente, Playwright meldet einen Strict-Mode-Fehler |
+| Button aus dem `<form>` heraus verschoben | Findet ihn weiter | Findet nichts mehr |
+| Button umbenannt (z. B. "Save") | Findet nichts mehr, und das ist richtig: für den Nutzer hat sich etwas geändert | Findet ihn weiter, der Test merkt die Umbenennung nicht |
+| Fehlt der Name (Icon-Button ohne Label) | Rot, und das zeigt ein Problem der Barrierefreiheit | Bleibt grün |
+
+Fazit: Der Role-Locator bricht, wenn sich das ändert, was ein Nutzer wahrnimmt. Der CSS-Selektor bricht, wenn sich die Struktur ändert, auch wenn sich für den Nutzer nichts geändert hat. Das erste ist ein gewollter Fehler, das zweite ein unnötiger.
