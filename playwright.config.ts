@@ -1,5 +1,7 @@
 import { defineConfig } from "@playwright/test";
 
+import { e2eMongoUri } from "./e2e/database";
+
 // Not the dev ports (3001 backend, 5173 client). The client port must be in the CORS list of
 // the backend (3000 and 5173 are), and the dev client uses 5173, so the tests use 3000.
 const API_PORT = 3101;
@@ -12,11 +14,11 @@ export default defineConfig({
   use: { baseURL: `http://localhost:${WEB_PORT}`, trace: "retain-on-failure" },
   webServer: [
     {
-      // The backend. It reads MONGODB_URI from .env, only the port changes.
+      // The backend, on its own database. A variable set here wins over backend/.env.
       command: "npm start -w backend",
       url: `http://localhost:${API_PORT}/api/health`,
       reuseExistingServer: false,
-      env: { PORT: String(API_PORT) },
+      env: { PORT: String(API_PORT), MONGODB_URI: e2eMongoUri() },
     },
     {
       // The React app, talking to the test backend.
