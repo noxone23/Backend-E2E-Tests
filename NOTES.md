@@ -29,3 +29,11 @@ Was die Übung zeigt:
 Bei fehlgeschlagenen Läufen bleibt ein Buch in der Datenbank, weil das Löschen nicht mehr erreicht wird. Es heißt `E2E Book <Zahl>` und ist harmlos. Löschen geht in der Seite oder in Compass.
 
 Offen (nach den Fehlerläufen): `E2E Book 1795705965581` und `E2E Book 1795706324115`.
+
+## Challenge 2: Buch nach einem Reload noch da
+
+Der Test `a book is still there after a reload` legt ein Buch an, ruft `page.reload()` auf, erwartet das Buch weiter in der Liste und löscht es dann.
+
+Was er beweist, was der Flow-Test nicht beweist: Nach dem Reload ist der Zustand der Seite weg, die Liste wird neu von der API geladen. Das Buch steht also in der Datenbank. Der Flow-Test sieht das Buch auch dann, wenn die Seite es nur im Speicher hält.
+
+Geprüft: `npm run e2e` zweimal hintereinander grün (3 Tests), einzeln mit `npx playwright test -g "after a reload"` grün, `npm run typecheck` ohne Fehler.
