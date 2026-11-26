@@ -42,4 +42,4 @@ Run these in the project root (the folder with the root `package.json`):
 
 ## Do not change
 
-`backend/src/types.ts`, `backend/src/seed.json`.
+`backend/src/types.ts`, `backend/src/seed.json`, `e2e/database.ts`.

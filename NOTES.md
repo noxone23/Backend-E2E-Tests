@@ -67,3 +67,25 @@ Trace: Die Konfiguration schreibt mit `trace: "retain-on-failure"` für jeden fe
 | Fehlt der Name (Icon-Button ohne Label) | Rot, und das zeigt ein Problem der Barrierefreiheit | Bleibt grün |
 
 Fazit: Der Role-Locator bricht, wenn sich das ändert, was ein Nutzer wahrnimmt. Der CSS-Selektor bricht, wenn sich die Struktur ändert, auch wenn sich für den Nutzer nichts geändert hat. Das erste ist ein gewollter Fehler, das zweite ein unnötiger.
+
+## Challenge 4: Eigene Test-Datenbank
+
+Die Tests laufen jetzt gegen `reading-list-e2e` statt gegen `reading-list`, auf demselben Cluster und mit derselben Connection-String aus `backend/.env`. Es gibt keinen zweiten String in der `.env`.
+
+Umsetzung:
+
+- `e2e/database.ts` lädt `backend/.env` mit `process.loadEnvFile("backend/.env")` (ein Fehler wird abgefangen, wenn es die Datei nicht gibt), liest `MONGODB_URI` und setzt mit `new URL(uri)` den Pfad auf `/reading-list-e2e`.
+- Der Guard wirft einen Fehler, wenn der Datenbankname nicht auf `-e2e` endet. Die Meldung nennt nur den Namen, nie den String. Ein ungültiger String führt zu einer eigenen Meldung, weil der Originalfehler von `new URL` die Eingabe enthalten kann.
+- `playwright.config.ts` gibt der Test-API den neuen String als `MONGODB_URI` in `webServer.env`. Eine dort gesetzte Variable hat Vorrang vor der `.env`.
+- `e2e/database.ts` steht in der "Do not change"-Liste der `CLAUDE.md`.
+
+Geprüft:
+
+- Ein Skript hat nur den Datenbanknamen ausgegeben: `reading-list-e2e`. Der String wurde nicht ausgegeben.
+- `npm run typecheck` ohne Fehler, `npm run e2e` mit 3 Tests grün.
+- Guard: Mit dem Namen `reading-list` bricht `npm run e2e` beim Laden der Konfiguration ab mit `The E2E tests only run against a database ending with "-e2e", not "reading-list".` Es startet kein Server und läuft kein Test.
+
+Zum Nachdenken: Wovor schützt die Trennung, und warum ist sie nur eine Hürde und keine Grenze?
+
+- Sie schützt vor Versehen. Ein Test, der nach einem Fehler ein Buch zurücklässt, oder ein Test, der später doch Daten löscht, trifft nicht mehr die echten Bücher in `reading-list`. Die Testdaten und die echten Daten vermischen sich nicht, und die Seed-Bücher bleiben unangetastet.
+- Sie ist keine Grenze, weil derselbe Atlas-User alle Datenbanken des Clusters lesen und schreiben darf. Wer die Konstante ändert oder `MONGODB_URI` in `webServer.env` anders setzt, kommt trotzdem an `reading-list`. Der Guard bremst nur ein Versehen, nicht jemanden mit Absicht. Eine echte Grenze wäre ein eigener Atlas-User, der nur auf `reading-list-e2e` Rechte hat, oder ein eigener Cluster.
